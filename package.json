@@ -87,6 +87,7 @@
       "style.css",
       "assets/",
       "modules/**/*",
+      "*modules/**/*",
       "node_modules/**/*"
     ],
     "directories": {
