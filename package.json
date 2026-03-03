@@ -76,6 +76,7 @@
   "build": {
     "appId": "com.vcp.chatdesktop",
     "productName": "VCP聊天客户端",
+    "publish": null,
     "files": [
       "main.js",
       "preload.js",
