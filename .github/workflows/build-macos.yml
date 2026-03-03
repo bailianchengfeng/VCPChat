@@ -1,0 +1,63 @@
+name: Build macOS x64 DMG
+
+on:
+  # 手动触发
+  workflow_dispatch:
+  # 推送 tag 时自动触发
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-macos-x64:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 将 icon.png 转换为 macOS 所需的 icon.icns
+      - name: Convert icon to icns
+        run: |
+          mkdir -p assets/icon.iconset
+          sips -z 16 16     assets/icon.png --out assets/icon.iconset/icon_16x16.png
+          sips -z 32 32     assets/icon.png --out assets/icon.iconset/icon_16x16@2x.png
+          sips -z 32 32     assets/icon.png --out assets/icon.iconset/icon_32x32.png
+          sips -z 64 64     assets/icon.png --out assets/icon.iconset/icon_32x32@2x.png
+          sips -z 128 128   assets/icon.png --out assets/icon.iconset/icon_128x128.png
+          sips -z 256 256   assets/icon.png --out assets/icon.iconset/icon_128x128@2x.png
+          sips -z 256 256   assets/icon.png --out assets/icon.iconset/icon_256x256.png
+          sips -z 512 512   assets/icon.png --out assets/icon.iconset/icon_256x256@2x.png
+          sips -z 512 512   assets/icon.png --out assets/icon.iconset/icon_512x512.png
+          sips -z 1024 1024 assets/icon.png --out assets/icon.iconset/icon_512x512@2x.png
+          iconutil -c icns assets/icon.iconset -o assets/icon.icns
+
+      # 跳过 postinstall 中的 electron-rebuild (selection-hook 仅 Windows 可用)
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+        env:
+          npm_config_arch: x64
+
+      # 手动 rebuild 原生模块（排除 selection-hook）
+      - name: Rebuild native modules for x64
+        run: npx electron-rebuild -f --arch x64
+        env:
+          npm_config_arch: x64
+        continue-on-error: true
+
+      - name: Build macOS x64 DMG
+        run: npx electron-builder --mac --x64
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VCPChat-macOS-x64-dmg
+          path: dist/*.dmg
+          if-no-files-found: error
