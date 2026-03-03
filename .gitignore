@@ -5,6 +5,8 @@ gitignore
 
 AppData/
 
+bin/
+
 node_modules/
 
 .env
