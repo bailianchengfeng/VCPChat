@@ -270,7 +270,9 @@ function createWindow() {
         }
     });
 
+    let isWindowShown = false;
     mainWindow.once('ready-to-show', () => {
+        isWindowShown = true;
         // Signal the native splash screen to close by creating the ready file.
         const readyFile = path.join(__dirname, '.vcp_ready');
         fs.ensureFileSync(readyFile);
@@ -282,7 +284,24 @@ function createWindow() {
             }
         }, 3000); // 3-second delay
 
+        console.log('[Main] mainWindow ready-to-show triggered.');
         mainWindow.show();
+    });
+
+    // Fallback: forcefully show the window after 5 seconds if ready-to-show hasn't fired
+    setTimeout(() => {
+        if (!isWindowShown && mainWindow && !mainWindow.isDestroyed()) {
+            console.warn('[Main] mainWindow ready-to-show timeout reached. Force showing the window.');
+            mainWindow.show();
+        }
+    }, 5000);
+
+    mainWindow.webContents.on('crashed', (event) => {
+        console.error('[Main] mainWindow webContents crashed!', event);
+    });
+
+    mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+        console.error(`[Main] mainWindow failed to load: ${errorCode} - ${errorDescription} at ${validatedURL}`);
     });
 
     // mainWindow.setMenu(null); // 移除应用程序菜单栏 - 注释掉以启用macOS的标准菜单
@@ -1410,3 +1429,22 @@ async function handleFlowlockControl(commandPayload) {
         return { status: 'error', message: error.message };
     }
 }
+
+// --- macOS Application Lifecycle Events ---
+app.on('window-all-closed', () => {
+    // On macOS it is common for applications and their menu bar
+    // to stay active until the user quits explicitly with Cmd + Q
+    if (process.platform !== 'darwin') {
+        app.quit();
+    }
+});
+
+app.on('activate', () => {
+    // On macOS it's common to re-create a window in the app when the
+    // dock icon is clicked and there are no other windows open.
+    if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+    } else if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.show();
+    }
+});
