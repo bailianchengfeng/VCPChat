@@ -109,6 +109,11 @@
       "target": "nsis",
       "icon": "assets/icon.ico"
     },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false
+    },
     "linux": {
       "target": "AppImage",
       "icon": "assets"
